@@ -6,14 +6,104 @@ import argparse
 import re
 import csv
 from collections import Counter
+import matplotlib.pyplot as plt
 
-PATTEN = r',|#| |\.|\n|\||\/'
+PATTEN = r',|#| |\.|\n|\||\/|='
 
-IGNORE = ['the', 'a', 'if', 'in', 'it', 'of', 'or', 'and', 'an', 'to']
+IGNORE = [
+    '-',
+    'about',
+    'above',
+    'across',
+    'after',
+    'against',
+    'among',
+    'around',
+    'at',
+    'before',
+    'behind',
+    'below',
+    'beside',
+    'between',
+    'by',
+    'down',
+    'during',
+    'for',
+    'from',
+    'in',
+    'inside',
+    'into',
+    'near',
+    'of',
+    'off',
+    'on',
+    'out',
+    'over',
+    'through',
+    'to',
+    'toward',
+    'under',
+    'up',
+    'with',
+    'aboard',
+    'along',
+    'amid',
+    'as',
+    'beneath',
+    'beyond',
+    'but',
+    'concerning',
+    'considering',
+    'despite',
+    'except',
+    'following',
+    'like',
+    'minus',
+    'next',
+    'onto',
+    'opposite',
+    'outside',
+    'past',
+    'per',
+    'plus',
+    'regarding',
+    'round',
+    'save',
+    'since',
+    'than',
+    'till',
+    'underneath',
+    'unlike',
+    'until',
+    'upon',
+    'versus',
+    'via',
+    'within',
+    'without',
+    'the',
+    'a',
+    'was',
+    'you',
+    'is',
+    'are',
+    'were',
+    'and',
+    'be',
+    'The',
+    'our',
+    'Our',
+    'As',
+    'We',
+    'A',
+    'no',
+    'we',
+    'AS',
+    'will',
+]
 
 
 def DebugLog(*msgs):
-    if True:
+    if False:
         print('[DEBUG]: ', msgs)
 
 
@@ -53,9 +143,20 @@ def NicePrint(data):
 def WriteCSV(file_name, data):
     file_name = file_name[:-4] + '.csv'
     DebugLog('CSV file name: ' + file_name)
-    with open(file_name, 'w', newline='') as csvfile:
+    with open(file_name, 'w', newline='', encoding='GBK') as csvfile:
         csvwriter = csv.writer(csvfile)
         csvwriter.writerows(data)
+
+
+def DrawBar(data):
+    words = [val[0] for val in data]
+    DebugLog('Words: ', words)
+    tops = [val[1] for val in data]
+    DebugLog('Tops: ', tops)
+    plt.rcParams['font.sans-serif'] = ['SimHei']
+    fig, ax = plt.subplots()
+    ax.barh(words, tops)
+    plt.show()
 
 
 if __name__ == '__main__':
@@ -63,4 +164,5 @@ if __name__ == '__main__':
     ret = Run(args.file_name, args.top_num)
     NicePrint(ret)
     WriteCSV(args.file_name, ret)
+    DrawBar(ret)
     sys.exit(0)
