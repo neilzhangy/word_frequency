@@ -4,6 +4,7 @@ import os
 import sys
 import argparse
 import re
+import csv
 from collections import Counter
 
 PATTEN = r',|#| |\.|\n|\||\/'
@@ -12,7 +13,7 @@ IGNORE = ['the', 'a', 'if', 'in', 'it', 'of', 'or', 'and', 'an', 'to']
 
 
 def DebugLog(*msgs):
-    if False:
+    if True:
         print('[DEBUG]: ', msgs)
 
 
@@ -49,8 +50,17 @@ def NicePrint(data):
         print('{:>30s}{:>30s}'.format(str(ele[0]), str(ele[1])))
 
 
+def WriteCSV(file_name, data):
+    file_name = file_name[:-4] + '.csv'
+    DebugLog('CSV file name: ' + file_name)
+    with open(file_name, 'w', newline='') as csvfile:
+        csvwriter = csv.writer(csvfile)
+        csvwriter.writerows(data)
+
+
 if __name__ == '__main__':
     args = GetArgs()
     ret = Run(args.file_name, args.top_num)
     NicePrint(ret)
+    WriteCSV(args.file_name, ret)
     sys.exit(0)
