@@ -5,8 +5,10 @@ import sys
 import argparse
 import re
 import csv
+import requests
 from collections import Counter
 import matplotlib.pyplot as plt
+import html_text
 
 PATTEN = r',|#| |\.|\n|\||\/|='
 
@@ -99,28 +101,54 @@ IGNORE = [
     'we',
     'AS',
     'will',
+    '&', 'de', 'la', 'this', 'that', 'e', 'com',
 ]
 
 
 def DebugLog(*msgs):
-    if False:
+    if True:
         print('[DEBUG]: ', msgs)
 
 
 def GetArgs():
     parser = argparse.ArgumentParser(description='Calculate word frequency')
-    parser.add_argument('--file', dest='file_name', required=True,
+    parser.add_argument('--file', dest='file_name', required=False,
                         help='File name to count the word frequency.')
     parser.add_argument('--top', dest='top_num', type=int, required=True,
                         help='Number of top frequency words to show.')
+    parser.add_argument('--url', dest='url_file', required=False,
+                        help='File with URLs to count the word frequency.')
     args = parser.parse_args()
     return args
 
+def FixUrl(url):
+    DebugLog('Before Url: %s' % url)
+    regex = re.compile(
+        r'^(?:http|ftp)s?://' # http:// or https://
+        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|' #domain...
+        r'localhost|' #localhost...
+        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})' # ...or ip
+        r'(?::\d+)?' # optional port
+        r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+    url = url.strip().rstrip()
+    DebugLog('After Url: %s' % url)
+    if not re.match(regex, url):
+        DebugLog("It's not a correct URL!")
+        return ''
+    return url
 
-def Run(file_name, top_num):
-    with open(file_name, encoding='utf-8', mode='r') as f:
-        data = f.read()
 
+def GetHtmlContent(url):
+    data = ''
+    try:
+        req = requests.get(FixUrl(url),  timeout=30)
+        data = req.text
+        req.close()
+    except:
+        pass
+    return data
+
+def Count(data, top_num):
     word_list = re.split(PATTEN, data)
     DebugLog('Length of the list: %d' % len(word_list))
     word_list = list(filter(None, word_list))
@@ -133,6 +161,21 @@ def Run(file_name, top_num):
     DebugLog(counter.most_common(top_num))
     return counter.most_common(top_num)
 
+def FromSingleTxt(file_name, top_num):
+    with open(file_name, encoding='utf-8', mode='r') as f:
+        data = f.read()
+    return Count(data, top_num)
+
+def FromUrlTxt(file_name, top_num):
+    with open(file_name, encoding='utf-8', mode='r') as f:
+        lines = f.readlines()
+    to_analyse = ''
+    for line in lines:
+        web_html = GetHtmlContent(line.rstrip())
+        text = html_text.extract_text(web_html)
+        to_analyse = to_analyse + ' ' + text
+    return Count(to_analyse, top_num) 
+        
 
 def NicePrint(data):
     print('{:>30s}{:>30s}'.format('单词', '次数'))
@@ -143,7 +186,7 @@ def NicePrint(data):
 def WriteCSV(file_name, data):
     file_name = file_name[:-4] + '.csv'
     DebugLog('CSV file name: ' + file_name)
-    with open(file_name, 'w', newline='', encoding='GBK') as csvfile:
+    with open(file_name, 'w', newline='', encoding='utf-8') as csvfile:
         csvwriter = csv.writer(csvfile)
         csvwriter.writerows(data)
 
@@ -161,8 +204,15 @@ def DrawBar(data):
 
 if __name__ == '__main__':
     args = GetArgs()
-    ret = Run(args.file_name, args.top_num)
-    NicePrint(ret)
-    WriteCSV(args.file_name, ret)
-    DrawBar(ret)
+    if args.file_name:
+        ret = FromSingleTxt(args.file_name, args.top_num)
+        NicePrint(ret)
+        WriteCSV(args.file_name, ret)
+        DrawBar(ret)      
+    elif args.url_file:
+        ret = FromUrlTxt(args.url_file, args.top_num)
+        NicePrint(ret)
+        WriteCSV(args.url_file, ret)
+        DrawBar(ret) 
+    
     sys.exit(0)
